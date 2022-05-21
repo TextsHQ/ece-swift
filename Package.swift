@@ -4,6 +4,7 @@ import PackageDescription
 
 let package = Package(
     name: "ece-swift",
+    platforms: [.iOS(.v14)],
     products: [
         .library(
             name: "ECE",

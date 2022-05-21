@@ -27,6 +27,7 @@ public enum AESGCM {
             } catch {
                 saltBuf.deallocate()
                 pubBuf.deallocate()
+                throw error
             }
             salt = Data(bytesNoCopy: saltBuf.baseAddress!, count: saltBuf.count, deallocator: .deallocate)
             senderPublicKey = Data(bytesNoCopy: pubBuf.baseAddress!, count: pubBuf.count, deallocator: .deallocate)
