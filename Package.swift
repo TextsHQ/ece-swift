@@ -4,7 +4,7 @@ import PackageDescription
 
 let package = Package(
     name: "ece-swift",
-    platforms: [.iOS(.v14)],
+    platforms: [.iOS(.v14), .macOS(.v11)],
     products: [
         .library(
             name: "ECE",
@@ -12,16 +12,14 @@ let package = Package(
         ),
     ],
     dependencies: [
-        .package(url: "https://github.com/krzyzanowskim/OpenSSL.git", .upToNextMinor(from: "1.1.180")),
+        .package(url: "https://github.com/apple/swift-crypto.git", "1.0.0" ..< "3.0.0"),
     ],
     targets: [
         .target(
-            name: "ECEC",
-            dependencies: ["OpenSSL"]
-        ),
-        .target(
             name: "ECE",
-            dependencies: ["ECEC"]
+            dependencies: [
+                .product(name: "Crypto", package: "swift-crypto"),
+            ]
         ),
         .testTarget(
             name: "ECETests",
