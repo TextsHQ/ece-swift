@@ -105,41 +105,6 @@ extension ECE.AESGCM {
 }
 
 extension ECE.AES128GCM {
-    private static func deriveKeyAndNonce(
-        forDecryption isDecrypting: Bool,
-        secrets: ECE.Secrets,
-        parameters: Parameters
-    ) throws -> (key: SymmetricKey, nonce: Data) {
-        let receiverKey = isDecrypting ? secrets.privateKey.publicKey : parameters.senderPublicKey
-        let senderKey = isDecrypting ? parameters.senderPublicKey : secrets.privateKey.publicKey
-
-        let secret = try secrets.privateKey.sharedSecretFromKeyAgreement(with: parameters.senderPublicKey)
-
-        var info = Data("WebPush: info\0".utf8)
-        info.append(receiverKey.x963Representation)
-        info.append(senderKey.x963Representation)
-
-        let ikm = secret.hkdfDerivedSymmetricKey(
-            using: SHA256.self,
-            salt: secrets.auth,
-            sharedInfo: info,
-            outputByteCount: ECE.ikmLength
-        )
-        let key = HKDF<SHA256>.deriveKey(
-            inputKeyMaterial: ikm,
-            salt: parameters.salt,
-            info: Data("Content-Encoding: aes128gcm\0".utf8),
-            outputByteCount: ECE.keyLength
-        )
-        let nonce = HKDF<SHA256>.deriveKey(
-            inputKeyMaterial: ikm,
-            salt: parameters.salt,
-            info: Data("Content-Encoding: nonce\0".utf8),
-            outputByteCount: ECE.nonceLength
-        ).withUnsafeBytes(Data.init(_:))
-        return (key, nonce)
-    }
-
     struct Decryptor {
         var decryptor: ECE.Decryptor
 

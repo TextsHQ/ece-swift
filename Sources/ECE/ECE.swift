@@ -87,9 +87,12 @@ extension ECE.AESGCM {
             sharedInfo: Data("Content-Encoding: auth\0".utf8),
             outputByteCount: ECE.ikmLength
         )
-        let key = HKDF<SHA256>.deriveKey(
+        let prk = HKDF<SHA256>.extract(
             inputKeyMaterial: ikm,
-            salt: parameters.salt,
+            salt: parameters.salt
+        )
+        let key = HKDF<SHA256>.expand(
+            pseudoRandomKey: prk,
             info: generateInfo(
                 receiverKey: receiverKey,
                 senderKey: senderKey,
@@ -97,9 +100,8 @@ extension ECE.AESGCM {
             ),
             outputByteCount: ECE.keyLength
         )
-        let nonce = HKDF<SHA256>.deriveKey(
-            inputKeyMaterial: ikm,
-            salt: parameters.salt,
+        let nonce = HKDF<SHA256>.expand(
+            pseudoRandomKey: prk,
             info: generateInfo(
                 receiverKey: receiverKey,
                 senderKey: senderKey,
@@ -146,5 +148,42 @@ extension ECE.AES128GCM {
                 x963Representation: header.dropFirst(ECE.saltLength + 4 + 1).prefix(keyLength)
             )
         }
+    }
+
+    static func deriveKeyAndNonce(
+        forDecryption isDecrypting: Bool,
+        secrets: ECE.Secrets,
+        parameters: Parameters
+    ) throws -> (key: SymmetricKey, nonce: Data) {
+        let receiverKey = isDecrypting ? secrets.privateKey.publicKey : parameters.senderPublicKey
+        let senderKey = isDecrypting ? parameters.senderPublicKey : secrets.privateKey.publicKey
+
+        let secret = try secrets.privateKey.sharedSecretFromKeyAgreement(with: parameters.senderPublicKey)
+
+        var info = Data("WebPush: info\0".utf8)
+        info.append(receiverKey.x963Representation)
+        info.append(senderKey.x963Representation)
+
+        let ikm = secret.hkdfDerivedSymmetricKey(
+            using: SHA256.self,
+            salt: secrets.auth,
+            sharedInfo: info,
+            outputByteCount: ECE.ikmLength
+        )
+        let prk = HKDF<SHA256>.extract(
+            inputKeyMaterial: ikm,
+            salt: parameters.salt
+        )
+        let key = HKDF<SHA256>.expand(
+            pseudoRandomKey: prk,
+            info: Data("Content-Encoding: aes128gcm\0".utf8),
+            outputByteCount: ECE.keyLength
+        )
+        let nonce = HKDF<SHA256>.expand(
+            pseudoRandomKey: prk,
+            info: Data("Content-Encoding: nonce\0".utf8),
+            outputByteCount: ECE.nonceLength
+        ).withUnsafeBytes(Data.init(_:))
+        return (key, nonce)
     }
 }
