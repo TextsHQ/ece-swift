@@ -85,7 +85,7 @@ extension ECE.AESGCM {
                     // needs trailer
                     throw ECEError.decryptTruncated
                 }
-                let padSize = Int(record.withUnsafeBytes { $0.load(as: UInt16.self) }.byteSwapped)
+                let padSize = Int(record.withUnsafeBytes { $0.load(as: UInt16.self) }.bigEndian)
                 guard record[ECE.AESGCM.padSize..<(ECE.AESGCM.padSize + padSize)].allSatisfy({ $0 == 0 }) else {
                     throw ECEError.decryptPadding
                 }

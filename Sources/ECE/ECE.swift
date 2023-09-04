@@ -15,11 +15,7 @@ extension ECE {
     public static let defaultRS = 4096
 
     static func computeIV(nonce: Data, counter: UInt64) throws -> AES.GCM.Nonce {
-        // TODO: Use loadUnaligned once SE-0349 lands
-        #if swift(>=5.7)
-        #warning("Replace this with loadUnaligned")
-        #endif
-        let updated = nonce.advanced(by: 4).withUnsafeBytes { $0.load(as: UInt64.self) } ^ counter.byteSwapped
+        let updated = nonce.withUnsafeBytes { $0.loadUnaligned(fromByteOffset: 4, as: UInt64.self) } ^ counter.bigEndian
         return try .init(data: nonce[..<4] + withUnsafeBytes(of: updated) { Data($0) })
     }
 }
@@ -141,9 +137,8 @@ extension ECE.AES128GCM {
             // +-----------+--------+-----------+---------------+
             // for web push, idlen is 65 (P-256 public key)
             salt = header.prefix(ECE.saltLength)
-            rs = Int(header.dropFirst(ECE.saltLength).withUnsafeBytes { $0.load(as: UInt32.self) }.byteSwapped)
-            // TODO: Use loadUnaligned once SE-0349 lands
-            let keyLength = Int(header.advanced(by: ECE.saltLength + 4).withUnsafeBytes { $0.load(as: UInt8.self) })
+            rs = Int(header.withUnsafeBytes { $0.loadUnaligned(fromByteOffset: ECE.saltLength, as: UInt32.self) }.bigEndian)
+            let keyLength = Int(header.withUnsafeBytes { $0.loadUnaligned(fromByteOffset: ECE.saltLength + 4, as: UInt8.self) })
             senderPublicKey = try P256.KeyAgreement.PublicKey(
                 x963Representation: header.dropFirst(ECE.saltLength + 4 + 1).prefix(keyLength)
             )
