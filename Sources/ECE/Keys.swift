@@ -5,18 +5,17 @@ extension ECE {
     public struct Secrets {
         private static let authLength = 16
 
-        public let privateKey: P256.KeyAgreement.PrivateKey
+        let privateKey: any P256PrivateKey
         public let auth: Data
 
-        public init() {
-            privateKey = .init()
-            auth = .init(randomByteCount: Self.authLength)
-        }
-
-        public init(privateKey: P256.KeyAgreement.PrivateKey, auth: Data) {
-            precondition(auth.count >= Self.authLength)
+        public init(privateKey: any P256PrivateKey, auth: Data? = nil) {
             self.privateKey = privateKey
-            self.auth = auth
+            if let auth {
+                precondition(auth.count >= Self.authLength)
+                self.auth = auth
+            } else {
+                self.auth = Data(randomByteCount: Self.authLength)
+            }
         }
 
         public var webpushKeys: (auth: String, p256dh: String) {
@@ -27,3 +26,10 @@ extension ECE {
         }
     }
 }
+
+public protocol P256PrivateKey {
+    var publicKey: P256.KeyAgreement.PublicKey { get }
+    func sharedSecretFromKeyAgreement(with publicKeyShare: P256.KeyAgreement.PublicKey) throws -> SharedSecret
+}
+extension P256.KeyAgreement.PrivateKey: P256PrivateKey {}
+extension SecureEnclave.P256.KeyAgreement.PrivateKey: P256PrivateKey {}

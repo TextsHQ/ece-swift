@@ -1,9 +1,10 @@
 import XCTest
+import Crypto
 @testable import ECE
 
 final class ECETests: XCTestCase {
     private static let simpleTestSecrets = try! ECE.Secrets(
-        privateKey: .init(rawRepresentation: Data(base64Encoded: "WIy1EpNFwHbFbM+cVHtLgxmq53fTqfiPdcuT0lcAmrg=")!),
+        privateKey: P256.KeyAgreement.PrivateKey(rawRepresentation: Data(base64Encoded: "WIy1EpNFwHbFbM+cVHtLgxmq53fTqfiPdcuT0lcAmrg=")!),
         auth: Data(base64Encoded: "ysX4+bphFG9rbxwGX02KLw==")!
     )
 
